@@ -40,7 +40,7 @@ return {
 					-- Web
 					"html",
 					"cssls",
-					"tsserver",
+					"typescript", -- Changé de "tsserver" à "typescript"
 					"eslint",
 
 					-- PHP
@@ -104,7 +104,7 @@ return {
 					"mypy", -- Python
 					"eslint_d", -- JS/TS
 					"shellcheck", -- Bash
-					"luacheck", -- Lua
+					-- "luacheck", -- Supprimé car problématique
 					"cpplint", -- C/C++
 					"checkstyle", -- Java
 					"phpcs", -- PHP
