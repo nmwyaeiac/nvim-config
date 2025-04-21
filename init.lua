@@ -1,3 +1,4 @@
+-- Installation automatique de lazy.nvim s'il n'est pas présent
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
 	vim.fn.system({
@@ -10,6 +11,52 @@ if not vim.loop.fs_stat(lazypath) then
 	})
 end
 vim.opt.rtp:prepend(lazypath)
-vim.opt.termguicolors = true
+
+-- Configuration de base de Vim/Neovim
 require("vim-config")
-require("lazy").setup("plugins", opts)
+
+-- Chargement des raccourcis clavier généraux
+require("keymaps")
+
+-- Installer les plugins avec lazy.nvim
+require("lazy").setup("plugins", {
+	defaults = { lazy = false },
+	install = { colorscheme = { "sonokai" } },
+	checker = { enabled = true, notify = false },
+	change_detection = {
+		notify = false,
+	},
+	ui = {
+		border = "rounded",
+	},
+	performance = {
+		rtp = {
+			disabled_plugins = {
+				"gzip",
+				"tarPlugin",
+				"tohtml",
+				"tutor",
+				"zipPlugin",
+			},
+		},
+	},
+})
+
+-- Configuration supplémentaire après le chargement des plugins
+vim.api.nvim_create_autocmd("User", {
+	pattern = "LazyDone",
+	callback = function()
+		-- Charger la configuration des débogueurs après l'installation des plugins
+		if package.loaded["dap"] and package.loaded["dapui"] then
+			require("keymaps.debug").setup()
+		end
+
+		-- Charger la configuration de navigation après l'installation des plugins
+		if package.loaded["telescope"] and package.loaded["neo-tree"] then
+			require("keymaps.navigation").setup()
+		end
+
+		-- Message de démarrage
+		print("Configuration NeoVim chargée avec succès!")
+	end,
+})
