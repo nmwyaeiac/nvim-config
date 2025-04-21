@@ -60,7 +60,7 @@ return {
 				lsp_keymaps.setup(client, bufnr)
 
 				-- Désactiver le formatage pour certains serveurs (si on utilise none-ls à la place)
-				if client.name == "tsserver" or client.name == "clangd" then
+				if client.name == "typescript" or client.name == "clangd" then
 					client.server_capabilities.documentFormattingProvider = false
 					client.server_capabilities.documentRangeFormattingProvider = false
 				end
@@ -120,8 +120,8 @@ return {
 				-- est recommandée pour des fonctionnalités complètes
 			})
 
-			-- JavaScript/TypeScript
-			lspconfig.tsserver.setup({
+			-- JavaScript/TypeScript (remplacé tsserver par typescript)
+			lspconfig.typescript.setup({
 				capabilities = capabilities,
 				on_attach = on_attach,
 				settings = {
@@ -250,7 +250,21 @@ return {
 			require("mason-lspconfig").setup_handlers({
 				function(server_name)
 					-- Configuration par défaut pour les serveurs LSP non explicitement définis
-					if not pcall(require, "lspconfig")[server_name] then
+					if lspconfig[server_name] and not (
+						server_name == "clangd" or
+						server_name == "typescript" or
+						server_name == "jdtls" or
+						server_name == "pyright" or
+						server_name == "html" or
+						server_name == "cssls" or
+						server_name == "phpactor" or
+						server_name == "solargraph" or
+						server_name == "omnisharp" or
+						server_name == "zls" or
+						server_name == "bashls" or
+						server_name == "rust_analyzer" or
+						server_name == "lua_ls"
+					) then
 						lspconfig[server_name].setup({
 							capabilities = capabilities,
 							on_attach = on_attach,
