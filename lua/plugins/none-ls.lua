@@ -65,11 +65,11 @@ return {
       try_add(formatting.stylua)
       try_add(diagnostics.luacheck)
       
-      -- Rust - Correction pour rustfmt
-      -- Ajout correct de rustfmt
-      if formatting.rustfmt then  -- Vérification pour éviter les erreurs
-        try_add(formatting.rustfmt.with({
+      -- Rust - Utilise rustfmt depuis rustup plutôt que depuis Mason
+      if vim.fn.executable("rustfmt") == 1 then
+        table.insert(sources, null_ls.builtins.formatting.rustfmt.with({
           extra_args = {"--edition", "2021"},
+          command = "rustfmt", -- Utilise la version de rustfmt installée via rustup
         }))
       end
       
