@@ -65,12 +65,20 @@ return {
       try_add(formatting.stylua)
       try_add(diagnostics.luacheck)
       
-      -- Rust - Utilise rustfmt depuis rustup plutôt que depuis Mason
+      -- Rust - Correction du problème
       if vim.fn.executable("rustfmt") == 1 then
-        table.insert(sources, null_ls.builtins.formatting.rustfmt.with({
-          extra_args = {"--edition", "2021"},
-          command = "rustfmt", -- Utilise la version de rustfmt installée via rustup
-        }))
+        -- Créer une source personnalisée pour rustfmt
+        local rustfmt = {
+          name = "rustfmt",
+          method = null_ls.methods.FORMATTING,
+          filetypes = { "rust" },
+          generator = null_ls.formatter({
+            command = "rustfmt",
+            args = { "--edition", "2021" },
+            to_stdin = true,
+          }),
+        }
+        table.insert(sources, rustfmt)
       end
       
       null_ls.setup({
