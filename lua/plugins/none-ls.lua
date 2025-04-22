@@ -66,10 +66,12 @@ return {
       try_add(diagnostics.luacheck)
       
       -- Rust - Correction pour rustfmt
-      -- Utilisation explicite avec les options correctes
-      try_add(formatting.rustfmt.with({
-        extra_args = {"--edition", "2021"},
-      }))
+      -- Ajout correct de rustfmt
+      if formatting.rustfmt then  -- Vérification pour éviter les erreurs
+        try_add(formatting.rustfmt.with({
+          extra_args = {"--edition", "2021"},
+        }))
+      end
       
       null_ls.setup({
         debug = true,
