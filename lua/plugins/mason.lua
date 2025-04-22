@@ -96,7 +96,7 @@ return {
 					"rubocop", -- Ruby
 					"csharpier", -- C#
 					"shfmt", -- Bash
-					"rustfmt", -- Rust
+					--"rustfmt", -- Rust
 
 					-- Linters
 					"flake8", -- Python
