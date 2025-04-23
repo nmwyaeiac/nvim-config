@@ -31,6 +31,14 @@ return {
         return false
       end
 
+      -- Fonction de sécurité pour vérifier l'existence d'une source avant de l'utiliser
+      local function safe_add(category, name)
+        if category and category[name] then
+          return add_if_available(category[name])
+        end
+        return false
+      end
+
       -- TypeScript/JavaScript
       if is_available("prettier") then
         table.insert(sources, formatting.prettier.with({
@@ -43,14 +51,10 @@ return {
       
       if is_available("eslint") then
         -- Vérifier si eslint_d existe dans diagnostics
-        if diagnostics.eslint then
-          add_if_available(diagnostics.eslint)
-        end
+        safe_add(diagnostics, "eslint")
         
         -- Vérifier si eslint existe dans code_actions
-        if code_actions.eslint then
-          add_if_available(code_actions.eslint)
-        end
+        safe_add(code_actions, "eslint")
       end
 
       -- Lua
@@ -60,7 +64,7 @@ return {
         }))
       end
 
-      -- Rust - Correction ici pour éviter l'erreur nil
+      -- Rust
       if is_available("rustfmt") and formatting.rustfmt then
         table.insert(sources, formatting.rustfmt.with({
           extra_args = {"--edition", "2021"}
@@ -68,35 +72,55 @@ return {
       end
 
       -- C/C++
-      add_if_available(formatting.clang_format)
-      add_if_available(diagnostics.cpplint)
+      safe_add(formatting, "clang_format")
+      safe_add(diagnostics, "cpplint")
 
       -- Python
-      add_if_available(formatting.black)
-      add_if_available(diagnostics.flake8)
-      add_if_available(diagnostics.mypy)
+      safe_add(formatting, "black")
+      safe_add(diagnostics, "flake8")
+      safe_add(diagnostics, "mypy")
 
       -- PHP
-      add_if_available(formatting.phpcsfixer)
-      add_if_available(diagnostics.phpcs)
+      safe_add(formatting, "phpcsfixer")
+      safe_add(diagnostics, "phpcs")
 
       -- Ruby
-      add_if_available(formatting.rubocop)
-      add_if_available(diagnostics.rubocop)
+      safe_add(formatting, "rubocop")
+      safe_add(diagnostics, "rubocop")
 
       -- C#
-      add_if_available(formatting.csharpier)
+      safe_add(formatting, "csharpier")
 
       -- Shell/Bash
-      add_if_available(formatting.shfmt)
-      add_if_available(diagnostics.shellcheck)
+      safe_add(formatting, "shfmt")
+      -- Vérifier si shellcheck est disponible sous différents noms possibles
+      if not safe_add(diagnostics, "shellcheck") then
+        -- Essayer des alternatives si elles existent
+        safe_add(diagnostics, "sh")
+        -- Ou l'ajouter manuellement si vous connaissez la commande exacte
+        if is_available("shellcheck") then
+          -- Cette partie est optionnelle et dépend de l'API actuelle de none-ls
+          -- Si vous connaissez la structure correcte pour shellcheck
+          local shellcheck_source = null_ls.register({
+            name = "shellcheck",
+            method = null_ls.methods.DIAGNOSTICS,
+            filetypes = { "sh", "bash" },
+            command = "shellcheck",
+            args = { "--format=json", "--severity=style", "--shell=bash", "--external-sources", "-" },
+            -- Ajoutez d'autres options nécessaires
+          })
+          if shellcheck_source then
+            table.insert(sources, shellcheck_source)
+          end
+        end
+      end
 
       -- Java
-      add_if_available(formatting.google_java_format)
-      add_if_available(diagnostics.checkstyle)
+      safe_add(formatting, "google_java_format")
+      safe_add(diagnostics, "checkstyle")
 
       null_ls.setup({
-        debug = false, -- Mettre à false en production
+        debug = true, -- Temporairement mettre à true pour voir les erreurs détaillées
         sources = sources,
         on_attach = function(client, bufnr)
           -- Pas de format on save par défaut
