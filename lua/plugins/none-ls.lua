@@ -14,33 +14,44 @@ return {
       local code_actions = null_ls.builtins.code_actions
       local sources = {}
 
+      -- Imprimer les noms des sources disponibles pour le débogage
+      local function print_available_sources()
+        print("Formatters disponibles:")
+        for name, _ in pairs(null_ls.builtins.formatting) do
+          print("- " .. name)
+        end
+
+        print("\nDiagnostics disponibles:")
+        for name, _ in pairs(null_ls.builtins.diagnostics) do
+          print("- " .. name)
+        end
+        
+        print("\nCode actions disponibles:")
+        for name, _ in pairs(null_ls.builtins.code_actions) do
+          print("- " .. name)
+        end
+      end
+      
+      -- Décommenter cette ligne pour déboguer
+      -- print_available_sources()
+
       -- Fonction helper améliorée pour tester si l'outil est installé
       local function is_available(cmd)
         return vim.fn.executable(cmd) == 1
       end
 
-      -- Fonction pour ajouter une source seulement si elle est disponible
-      local function add_if_available(source)
-        if source then
-          local cmd = source._opts and (source._opts.command or source._opts.cmd) or source.name
-          if cmd and is_available(cmd) then
-            table.insert(sources, source)
-            return true
-          end
-        end
-        return false
-      end
-
-      -- Fonction de sécurité pour vérifier l'existence d'une source avant de l'utiliser
-      local function safe_add(category, name)
-        if category and category[name] then
-          return add_if_available(category[name])
+      -- Fonction sécurisée pour ajouter une source si elle existe
+      local function safe_add(source_table, source_name, cmd_name)
+        cmd_name = cmd_name or source_name
+        if source_table and source_table[source_name] and is_available(cmd_name) then
+          table.insert(sources, source_table[source_name])
+          return true
         end
         return false
       end
 
       -- TypeScript/JavaScript
-      if is_available("prettier") then
+      if is_available("prettier") and formatting.prettier then
         table.insert(sources, formatting.prettier.with({
           filetypes = {
             "javascript", "typescript", "javascriptreact", "typescriptreact",
@@ -49,16 +60,12 @@ return {
         }))
       end
       
-      if is_available("eslint") then
-        -- Vérifier si eslint_d existe dans diagnostics
-        safe_add(diagnostics, "eslint")
-        
-        -- Vérifier si eslint existe dans code_actions
-        safe_add(code_actions, "eslint")
-      end
+      -- ESLint (diagnostics et code actions)
+      safe_add(diagnostics, "eslint", "eslint")
+      safe_add(code_actions, "eslint", "eslint")
 
       -- Lua
-      if is_available("stylua") then
+      if is_available("stylua") and formatting.stylua then
         table.insert(sources, formatting.stylua.with({
           extra_args = {"--indent-type", "Spaces", "--indent-width", "2"}
         }))
@@ -72,55 +79,39 @@ return {
       end
 
       -- C/C++
-      safe_add(formatting, "clang_format")
-      safe_add(diagnostics, "cpplint")
+      safe_add(formatting, "clang_format", "clang-format")
+      safe_add(diagnostics, "cpplint", "cpplint")
 
       -- Python
-      safe_add(formatting, "black")
-      safe_add(diagnostics, "flake8")
-      safe_add(diagnostics, "mypy")
+      safe_add(formatting, "black", "black")
+      safe_add(diagnostics, "flake8", "flake8")
+      safe_add(diagnostics, "mypy", "mypy")
 
       -- PHP
-      safe_add(formatting, "phpcsfixer")
-      safe_add(diagnostics, "phpcs")
+      safe_add(formatting, "phpcsfixer", "php-cs-fixer")
+      safe_add(diagnostics, "phpcs", "phpcs")
 
       -- Ruby
-      safe_add(formatting, "rubocop")
-      safe_add(diagnostics, "rubocop")
+      safe_add(formatting, "rubocop", "rubocop")
+      safe_add(diagnostics, "rubocop", "rubocop")
 
       -- C#
-      safe_add(formatting, "csharpier")
+      safe_add(formatting, "csharpier", "dotnet-csharpier")
 
       -- Shell/Bash
-      safe_add(formatting, "shfmt")
-      -- Vérifier si shellcheck est disponible sous différents noms possibles
-      if not safe_add(diagnostics, "shellcheck") then
-        -- Essayer des alternatives si elles existent
-        safe_add(diagnostics, "sh")
-        -- Ou l'ajouter manuellement si vous connaissez la commande exacte
-        if is_available("shellcheck") then
-          -- Cette partie est optionnelle et dépend de l'API actuelle de none-ls
-          -- Si vous connaissez la structure correcte pour shellcheck
-          local shellcheck_source = null_ls.register({
-            name = "shellcheck",
-            method = null_ls.methods.DIAGNOSTICS,
-            filetypes = { "sh", "bash" },
-            command = "shellcheck",
-            args = { "--format=json", "--severity=style", "--shell=bash", "--external-sources", "-" },
-            -- Ajoutez d'autres options nécessaires
-          })
-          if shellcheck_source then
-            table.insert(sources, shellcheck_source)
-          end
-        end
+      safe_add(formatting, "shfmt", "shfmt")
+      
+      -- Vérifier les différents noms possibles pour shellcheck
+      if not safe_add(diagnostics, "shellcheck", "shellcheck") then
+        safe_add(diagnostics, "sh", "sh")
       end
 
       -- Java
-      safe_add(formatting, "google_java_format")
-      safe_add(diagnostics, "checkstyle")
+      safe_add(formatting, "google_java_format", "google-java-format")
+      safe_add(diagnostics, "checkstyle", "checkstyle")
 
       null_ls.setup({
-        debug = true, -- Temporairement mettre à true pour voir les erreurs détaillées
+        debug = false,
         sources = sources,
         on_attach = function(client, bufnr)
           -- Pas de format on save par défaut
