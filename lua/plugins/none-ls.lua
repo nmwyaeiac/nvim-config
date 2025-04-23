@@ -7,7 +7,6 @@ return {
     },
     config = function()
       local null_ls = require("null-ls")
-      local lspconfig = require("lspconfig")
       
       -- Sources de formatage et de diagnostic
       local formatting = null_ls.builtins.formatting
@@ -16,113 +15,111 @@ return {
       local sources = {}
 
       -- Fonction helper améliorée pour tester si l'outil est installé
-      local function try_add(builtin)
-        if builtin then
-          local cmd = builtin._opts and (builtin._opts.command or builtin._opts.cmd) or builtin.name
-          if cmd and vim.fn.executable(cmd) == 1 then
-            table.insert(sources, builtin)
+      local function is_available(cmd)
+        return vim.fn.executable(cmd) == 1
+      end
+
+      -- Fonction pour ajouter une source seulement si elle est disponible
+      local function add_if_available(source)
+        if source then
+          local cmd = source._opts and (source._opts.command or source._opts.cmd) or source.name
+          if cmd and is_available(cmd) then
+            table.insert(sources, source)
             return true
           end
         end
         return false
       end
 
-      -- C/C++
-      try_add(formatting.clang_format)
-      try_add(diagnostics.clang_check)
-      try_add(diagnostics.cppcheck)
-
-      -- Java 
-      try_add(formatting.google_java_format)
-      try_add(diagnostics.checkstyle)
-      
-      -- Python
-      try_add(formatting.black)
-      try_add(diagnostics.flake8)
-      try_add(diagnostics.pylint)
-      try_add(diagnostics.mypy)
-      
-      -- Web
-      try_add(formatting.prettier)
-      try_add(diagnostics.eslint)
-      
-      -- PHP
-      try_add(diagnostics.phpcs)
-      try_add(formatting.phpcsfixer)
-      
-      -- Ruby
-      try_add(diagnostics.rubocop)
-      try_add(formatting.rubocop)
-      
-      -- C#
-      try_add(formatting.csharpier)
-      
-      -- Bash
-      try_add(formatting.shfmt)
-      try_add(diagnostics.shellcheck)
-      
-      -- Lua
-      try_add(formatting.stylua)
-      try_add(diagnostics.luacheck)
-      
-      -- Rust - Correction du problème
-      if vim.fn.executable("rustfmt") == 1 then
-        -- Créer une source personnalisée pour rustfmt
-        local rustfmt = {
-          name = "rustfmt",
-          method = null_ls.methods.FORMATTING,
-          filetypes = { "rust" },
-          generator = null_ls.formatter({
-            command = "rustfmt",
-            args = { "--edition", "2021" },
-            to_stdin = true,
-          }),
-        }
-        table.insert(sources, rustfmt)
+      -- TypeScript/JavaScript
+      if is_available("prettier") then
+        table.insert(sources, formatting.prettier.with({
+          filetypes = {
+            "javascript", "typescript", "javascriptreact", "typescriptreact",
+            "vue", "css", "scss", "html", "json", "yaml", "markdown", "graphql"
+          }
+        }))
       end
       
-      null_ls.setup({
-        debug = true,
-        sources = sources,
-        on_attach = function(client, bufnr)
-          -- Format on save (optionnel)
-          if client.supports_method("textDocument/formatting") then
-            vim.api.nvim_create_autocmd("BufWritePre", {
-              buffer = bufnr,
-              callback = function()
-                vim.lsp.buf.format({ 
-                  bufnr = bufnr,
-                  filter = function(c) 
-                    return c.name == "null-ls" 
-                  end
-                })
-              end,
+      if is_available("eslint_d") then
+        table.insert(sources, diagnostics.eslint_d.with({
+          condition = function(utils)
+            return utils.root_has_file({
+              ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yml"
             })
           end
-          
-          -- Notification lors de l'attachement
-          local filetype = vim.api.nvim_buf_get_option(bufnr, "filetype")
-          print("None-LS attaché pour " .. filetype .. " avec " .. #sources .. " outils")
+        }))
+        table.insert(sources, code_actions.eslint_d)
+      end
+
+      -- Lua
+      if is_available("stylua") then
+        table.insert(sources, formatting.stylua.with({
+          extra_args = {"--indent-type", "Spaces", "--indent-width", "2"}
+        }))
+      end
+      
+      -- Désactiver luacheck car il peut causer des problèmes
+      -- if is_available("luacheck") then
+      --   table.insert(sources, diagnostics.luacheck)
+      -- end
+
+      -- Rust
+      if is_available("rustfmt") then
+        table.insert(sources, null_ls.builtins.formatting.rustfmt.with({
+          extra_args = {"--edition", "2021"}
+        }))
+      end
+
+      -- C/C++
+      add_if_available(formatting.clang_format)
+      add_if_available(diagnostics.cpplint)
+
+      -- Python
+      add_if_available(formatting.black)
+      add_if_available(diagnostics.flake8)
+      add_if_available(diagnostics.mypy)
+
+      -- PHP
+      add_if_available(formatting.phpcsfixer)
+      add_if_available(diagnostics.phpcs)
+
+      -- Ruby
+      add_if_available(formatting.rubocop)
+      add_if_available(diagnostics.rubocop)
+
+      -- C#
+      add_if_available(formatting.csharpier)
+
+      -- Shell/Bash
+      add_if_available(formatting.shfmt)
+      add_if_available(diagnostics.shellcheck)
+
+      -- Java
+      add_if_available(formatting.google_java_format)
+      add_if_available(diagnostics.checkstyle)
+
+      null_ls.setup({
+        debug = false, -- Mettre à false en production
+        sources = sources,
+        on_attach = function(client, bufnr)
+          -- Format on save (optionnel - décommentez si vous le souhaitez)
+          -- if client.supports_method("textDocument/formatting") then
+          --   vim.api.nvim_create_autocmd("BufWritePre", {
+          --     buffer = bufnr,
+          --     callback = function()
+          --       vim.lsp.buf.format({
+          --         bufnr = bufnr,
+          --         filter = function(c)
+          --           return c.name == "null-ls"
+          --         end
+          --       })
+          --     end,
+          --   })
+          -- end
         end,
       })
 
-      -- Configuration language-specific LSP
-      -- Séparation de la configuration LSP de la configuration de formatage
-      lspconfig.rust_analyzer.setup({
-        settings = {
-          ["rust-analyzer"] = {
-            checkOnSave = { command = "clippy" },
-            -- Enlever l'option formatting ici pour éviter les conflits
-          },
-        },
-        -- Assurez-vous que rust_analyzer ne force pas le formatage
-        on_attach = function(client, bufnr)
-          -- Désactiver le formatage intégré de rust-analyzer
-          client.server_capabilities.documentFormattingProvider = false
-          client.server_capabilities.documentRangeFormattingProvider = false
-        end,
-      })
-      
       -- Raccourci format
       vim.keymap.set("n", "<leader>gf", function()
         vim.lsp.buf.format({ timeout_ms = 2000 })
