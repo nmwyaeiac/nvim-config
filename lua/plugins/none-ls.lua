@@ -41,15 +41,16 @@ return {
         }))
       end
       
-      if is_available("eslint_d") then
-        table.insert(sources, diagnostics.eslint_d.with({
-          condition = function(utils)
-            return utils.root_has_file({
-              ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yml"
-            })
-          end
-        }))
-        table.insert(sources, code_actions.eslint_d)
+      if is_available("eslint") then
+        -- Vérifier si eslint_d existe dans diagnostics
+        if diagnostics.eslint then
+          add_if_available(diagnostics.eslint)
+        end
+        
+        -- Vérifier si eslint existe dans code_actions
+        if code_actions.eslint then
+          add_if_available(code_actions.eslint)
+        end
       end
 
       -- Lua
@@ -58,15 +59,10 @@ return {
           extra_args = {"--indent-type", "Spaces", "--indent-width", "2"}
         }))
       end
-      
-      -- Désactiver luacheck car il peut causer des problèmes
-      -- if is_available("luacheck") then
-      --   table.insert(sources, diagnostics.luacheck)
-      -- end
 
       -- Rust
       if is_available("rustfmt") then
-        table.insert(sources, null_ls.builtins.formatting.rustfmt.with({
+        table.insert(sources, formatting.rustfmt.with({
           extra_args = {"--edition", "2021"}
         }))
       end
@@ -103,20 +99,7 @@ return {
         debug = false, -- Mettre à false en production
         sources = sources,
         on_attach = function(client, bufnr)
-          -- Format on save (optionnel - décommentez si vous le souhaitez)
-          -- if client.supports_method("textDocument/formatting") then
-          --   vim.api.nvim_create_autocmd("BufWritePre", {
-          --     buffer = bufnr,
-          --     callback = function()
-          --       vim.lsp.buf.format({
-          --         bufnr = bufnr,
-          --         filter = function(c)
-          --           return c.name == "null-ls"
-          --         end
-          --       })
-          --     end,
-          --   })
-          -- end
+          -- Pas de format on save par défaut
         end,
       })
 
