@@ -60,8 +60,8 @@ return {
         }))
       end
 
-      -- Rust
-      if is_available("rustfmt") then
+      -- Rust - Correction ici pour éviter l'erreur nil
+      if is_available("rustfmt") and formatting.rustfmt then
         table.insert(sources, formatting.rustfmt.with({
           extra_args = {"--edition", "2021"}
         }))
