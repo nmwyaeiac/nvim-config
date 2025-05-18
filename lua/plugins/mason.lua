@@ -1,7 +1,11 @@
+-- lua/plugins/mason.lua
 return {
   -- Gestionnaire de serveurs LSP, DAP, linters et formatters
   {
     "williamboman/mason.nvim",
+    lazy = false,
+    priority = 100, -- Chargement prioritaire
+    tag = "v2.0.0", -- Utiliser la version la plus récente
     config = function()
       require("mason").setup({
         ui = {
@@ -40,7 +44,7 @@ return {
           -- Web
           "html",
           "cssls",
-          "typescript", -- Changé de "tsserver" à "typescript"
+          "tsserver",  -- Correction du nom
           "eslint",
 
           -- PHP
@@ -103,7 +107,7 @@ return {
           "mypy", -- Python
           "eslint_d", -- JS/TS
           "shellcheck", -- Bash
-          -- "luacheck", -- Supprimé car problématique
+          -- Retirer luacheck car problématique
           "cpplint", -- C/C++
           "checkstyle", -- Java
           "phpcs", -- PHP
@@ -134,6 +138,7 @@ return {
           "netcoredbg", -- C#
         },
         automatic_installation = true,
+        automatic_setup = true,
       })
     end,
   },
