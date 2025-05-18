@@ -1,9 +1,22 @@
+-- lua/vim-config.lua
 -- Configuration de base de Vim/Neovim
 -- Contient les options fondamentales indépendantes des plugins
 
 -- Leader key
 vim.g.mapleader = " "
 vim.g.maplocalleader = ","
+
+-- Désactiver les providers inutilisés pour supprimer les warnings
+vim.g.loaded_perl_provider = 0  -- Désactiver le provider Perl
+vim.g.loaded_ruby_provider = 0  -- Désactiver le provider Ruby si non utilisé
+
+-- Configurer Python provider avec le bon chemin si nécessaire
+if vim.fn.executable("python3") == 1 then
+  vim.g.python3_host_prog = vim.fn.exepath("python3")
+else
+  -- Désactiver Python provider si indisponible
+  vim.g.loaded_python3_provider = 0
+end
 
 -- Options de base
 vim.opt.backup = false -- Pas de fichier de sauvegarde
