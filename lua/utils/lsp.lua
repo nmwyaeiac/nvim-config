@@ -143,16 +143,14 @@ function M.apply_user_lsp_settings(server_name)
   
   M.flags = {}
   
-  -- Utiliser validate de notre module compat au lieu de vim.validate directement
-  -- La fonction originale reste inchangée, mais c'est la fonction de compat qui sera appelée
-  local function safe_validate(...)
-    return compat.validate(...)
-  end
+  -- Utiliser safe_validate du module compat au lieu de vim.validate directement
+  -- C'est crucial pour éviter les erreurs de stack overflow
+  local safe_validate = compat.safe_validate
   
   -- Patch pour les fonctions qui peuvent utiliser vim.validate
   if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
-    local original_validate = vim.validate
-    vim.validate = safe_validate
+    -- Appliquer le patch temporairement pour ce bloc de code
+    local restore = compat.patch_validate_calls()
   end
   
   local opts = vim.tbl_deep_extend("force", server, { capabilities = M.capabilities, flags = M.flags })
@@ -195,9 +193,9 @@ function M.apply_user_lsp_settings(server_name)
     }
   end
   
-  -- Restaurer vim.validate si modifié
+  -- Restaurer vim.validate si nécessaire
   if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
-    vim.validate = original_validate
+    -- La restauration est gérée automatiquement par le retour de patch_validate_calls
   end
 
   -- Appliquer les paramètres
