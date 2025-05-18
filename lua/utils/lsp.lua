@@ -1,29 +1,21 @@
 --- ### Utilitaires LSP.
-
---  DESCRIPTION:
---  Fonctions utilisées pour configurer le plugin `mason-lspconfig.nvim`.
---  Vous pouvez spécifier vos propres paramètres lsp dans `M.apply_user_lsp_settings()`.
-
 local M = {}
 local utils = require "utils"
 local stored_handlers = {}
 
 --- Appliquer les paramètres par défaut pour les diagnostics, le formatage et les capacités LSP.
---- Doit être exécuté une seule fois, normalement sur mason-lspconfig.
---- @return nil
 M.apply_default_lsp_settings = function()
   -- Icônes
-  local get_icon = utils.get_icon
   local signs = {
-    { name = "DiagnosticSignError",    text = get_icon("DiagnosticError"),        texthl = "DiagnosticSignError" },
-    { name = "DiagnosticSignWarn",     text = get_icon("DiagnosticWarn"),         texthl = "DiagnosticSignWarn" },
-    { name = "DiagnosticSignHint",     text = get_icon("DiagnosticHint"),         texthl = "DiagnosticSignHint" },
-    { name = "DiagnosticSignInfo",     text = get_icon("DiagnosticInfo"),         texthl = "DiagnosticSignInfo" },
-    { name = "DapStopped",             text = get_icon("DapStopped"),             texthl = "DiagnosticWarn" },
-    { name = "DapBreakpoint",          text = get_icon("DapBreakpoint"),          texthl = "DiagnosticInfo" },
-    { name = "DapBreakpointRejected",  text = get_icon("DapBreakpointRejected"),  texthl = "DiagnosticError" },
-    { name = "DapBreakpointCondition", text = get_icon("DapBreakpointCondition"), texthl = "DiagnosticInfo" },
-    { name = "DapLogPoint",            text = get_icon("DapLogPoint"),            texthl = "DiagnosticInfo" }
+    { name = "DiagnosticSignError",    text = "✖",        texthl = "DiagnosticSignError" },
+    { name = "DiagnosticSignWarn",     text = "⚠",         texthl = "DiagnosticSignWarn" },
+    { name = "DiagnosticSignHint",     text = "➤",         texthl = "DiagnosticSignHint" },
+    { name = "DiagnosticSignInfo",     text = "ℹ",         texthl = "DiagnosticSignInfo" },
+    { name = "DapStopped",             text = "▶",             texthl = "DiagnosticWarn" },
+    { name = "DapBreakpoint",          text = "●",          texthl = "DiagnosticInfo" },
+    { name = "DapBreakpointRejected",  text = "○",  texthl = "DiagnosticError" },
+    { name = "DapBreakpointCondition", text = "◆", texthl = "DiagnosticInfo" },
+    { name = "DapLogPoint",            text = "◆",            texthl = "DiagnosticInfo" }
   }
   for _, sign in ipairs(signs) do
     vim.fn.sign_define(sign.name, sign)
@@ -35,15 +27,7 @@ M.apply_default_lsp_settings = function()
   -- Définir les diagnostics par défaut
   local default_diagnostics = {
     virtual_text = true,
-    signs = {
-      text = {
-        [vim.diagnostic.severity.ERROR] = utils.get_icon("DiagnosticError"),
-        [vim.diagnostic.severity.HINT] = utils.get_icon("DiagnosticHint"),
-        [vim.diagnostic.severity.WARN] = utils.get_icon("DiagnosticWarn"),
-        [vim.diagnostic.severity.INFO] = utils.get_icon("DiagnosticInfo"),
-      },
-      active = signs,
-    },
+    signs = true,
     update_in_insert = true,
     underline = true,
     severity_sort = true,
@@ -89,21 +73,46 @@ M.apply_default_lsp_settings = function()
   end
 end
 
---- Cette fonction a pour seul but de transmettre les mappages de touches LSP au LSP.
---- @param client string Le client pour lequel les mappages seront chargés.
---- @param bufnr string Le buffer pour lequel les mappages seront chargés.
+--- Cette fonction applique les mappages de touches LSP au LSP
 function M.apply_user_lsp_mappings(client, bufnr)
-  -- Utiliser les mappages LSP existants du client
-  require("keymaps.lsp").setup(client, bufnr)
+  -- Utiliser les mappages LSP existants du client si disponible
+  if require("keymaps.lsp") and require("keymaps.lsp").setup then
+    require("keymaps.lsp").setup(client, bufnr)
+  else
+    -- Mappages LSP par défaut si keymaps.lsp n'est pas disponible
+    local map = function(mode, lhs, rhs, desc)
+      vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+    end
+    
+    -- Diagnostic
+    map("n", "<leader>ld", vim.diagnostic.open_float, "Hover diagnostics")
+    map("n", "[d", function() vim.diagnostic.goto_prev() end, "Previous diagnostic")
+    map("n", "]d", function() vim.diagnostic.goto_next() end, "Next diagnostic")
+    map("n", "gl", vim.diagnostic.open_float, "Hover diagnostics")
+    
+    -- LSP actions
+    map("n", "<leader>la", vim.lsp.buf.code_action, "LSP code action")
+    map("v", "<leader>la", vim.lsp.buf.code_action, "LSP code action")
+    map("n", "<leader>lf", function() vim.lsp.buf.format({async = true}) end, "Format buffer")
+    map("n", "<leader>li", "<cmd>LspInfo<cr>", "LSP information")
+    map("n", "<leader>lr", vim.lsp.buf.rename, "Rename current symbol")
+    
+    -- Navigation
+    map("n", "gd", vim.lsp.buf.definition, "Goto definition")
+    map("n", "gD", vim.lsp.buf.declaration, "Goto declaration")
+    map("n", "gr", vim.lsp.buf.references, "References of current symbol")
+    map("n", "gI", vim.lsp.buf.implementation, "Goto implementation")
+    map("n", "gt", vim.lsp.buf.type_definition, "Goto type definition")
+    map("n", "gh", vim.lsp.buf.hover, "Hover help")
+    map("n", "gH", vim.lsp.buf.signature_help, "Signature help")
+  end
 end
 
---- Vous pouvez spécifier ici des paramètres personnalisés pour les serveurs LSP.
---- @param server_name string Le nom du serveur
---- @return table # La table d'options LSP utilisée lors de la configuration du serveur de langage
+--- Spécifie des paramètres personnalisés pour les serveurs LSP
 function M.apply_user_lsp_settings(server_name)
   local server = require("lspconfig")[server_name]
 
-  -- Définir les capacités du serveur utilisateur.
+  -- Définir les capacités du serveur
   M.capabilities = vim.lsp.protocol.make_client_capabilities()
   M.capabilities.textDocument.completion.completionItem.documentationFormat = { "markdown", "plaintext" }
   M.capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -140,10 +149,7 @@ function M.apply_user_lsp_settings(server_name)
   return opts
 end
 
---- Cette fonction transmet les `paramètres lsp de l'utilisateur` à lspconfig,
---- qui est responsable de tout configurer pour nous.
---- @param server string Un nom de serveur lsp.
---- @return nil
+--- Cette fonction configure le serveur LSP
 M.setup = function(server)
   -- Obtenir les paramètres utilisateur.
   local opts = M.apply_user_lsp_settings(server)
