@@ -17,14 +17,13 @@ return {
       -- Seulement pour Neovim 0.10+ où tbl_flatten est obsolète
       colorizer.setup = function(...)
         -- Patch pour la manipulation de tableau à l'intérieur du plugin
-        local old_flatten = vim.tbl_flatten
-        vim.tbl_flatten = compat.tbl_flatten
+        local restore = compat.patch_tbl_flatten_calls()
         
         -- Appel de la fonction originale
         local result = original_setup(...)
         
-        -- Restaurer la fonction originale
-        vim.tbl_flatten = old_flatten
+        -- Restaurer la fonction originale (optionnel)
+        restore()
         
         return result
       end
