@@ -14,7 +14,6 @@ return {
         },
         border = "rounded",
       },
-      -- Afficher un message quand l'installation est terminée
       log_level = vim.log.levels.INFO,
     },
   },
@@ -28,7 +27,7 @@ return {
     },
     event = "BufReadPre",
     opts = {
-      -- Serveurs LSP à installer automatiquement (liste à adapter selon vos besoins)
+      -- Serveurs LSP à installer automatiquement
       ensure_installed = {
         "clangd",          -- C/C++
         "pyright",         -- Python
@@ -40,13 +39,12 @@ return {
         "jsonls",          -- JSON
         "yamlls",          -- YAML
       },
-      -- Installation automatique des serveurs
       automatic_installation = true,
     },
     config = function(_, opts)
       require("mason-lspconfig").setup(opts)
       
-      -- Capturer l'événement setup du serveur pour configurer avec notre utilitaire LSP
+      -- Configurer les serveurs avec notre utilitaire LSP
       require("mason-lspconfig").setup_handlers({
         function(server)
           require("utils.lsp").setup(server)
