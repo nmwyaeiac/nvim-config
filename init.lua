@@ -1,4 +1,4 @@
--- init.lua (version mise à jour)
+-- init.lua (simplifié sans patches de compatibilité)
 -- Installation automatique de lazy.nvim s'il n'est pas présent
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -28,10 +28,9 @@ else
   vim.g.loaded_python3_provider = 0
 end
 
--- Appliquer les patches de compatibilité avant le chargement des plugins
--- Cela corrigera les avertissements de déprécation
-local init_patch = require("init-patch")
-init_patch.apply_compatibility_patches()
+-- Retirer temporairement les patches de compatibilité qui causent les erreurs
+-- local init_patch = require("init-patch")
+-- init_patch.apply_compatibility_patches()
 
 -- Chargement des raccourcis clavier généraux
 require("keymaps")
@@ -74,8 +73,8 @@ vim.api.nvim_create_autocmd("User", {
       require("keymaps.navigation").setup()
     end
     
-    -- Vérifier les dépendances manquantes
-    init_patch.check_missing_dependencies()
+    -- Vérifier les dépendances manquantes (version simplifiée sans patches)
+    -- init_patch.check_missing_dependencies()
 
     -- Message de démarrage
     print("Configuration NeoVim chargée avec succès!")
