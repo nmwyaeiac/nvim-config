@@ -11,7 +11,7 @@ function M.tbl_flatten(tbl)
   end
 end
 
--- Référence à la fonction validate originale (pour éviter la récursion)
+-- Sauvegarde de la fonction validate originale
 local original_validate = vim.validate
 
 -- Wrapper pour vim.validate (obsolète depuis Neovim 1.0)
@@ -24,8 +24,8 @@ function M.validate(...)
     vim._with_meta.deprecated_fn = function() end
   end
   
-  -- ATTENTION: Ici on appelle la référence originale, PAS vim.validate
-  -- car vim.validate pourrait déjà référencer M.validate (récursion infinie)
+  -- Appeler la fonction originale sauvegardée, pas vim.validate
+  -- C'est crucial pour éviter la récursion infinie
   local result = original_validate(...)
   
   -- Restaurer le comportement d'avertissement
@@ -37,7 +37,6 @@ function M.validate(...)
 end
 
 -- Fonction pour patcher les plugins qui utilisent vim.validate
--- Cette fonction est utile pour les plugins que nous ne pouvons pas modifier directement
 function M.patch_validate_calls()
   -- Remplacer par notre version sans avertissement
   vim.validate = M.validate
