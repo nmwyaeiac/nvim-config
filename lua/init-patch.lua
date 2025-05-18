@@ -6,12 +6,12 @@ local M = {}
 
 function M.apply_compatibility_patches()
   -- Charger notre module de compatibilité amélioré
-  -- Correction du nom du module pour correspondre au fichier existant
+  -- Le nom du module correspond au fichier existant
   local compat = require("utils.compat")
   
   -- Appliquer les patches pour les fonctions obsolètes
-  compat.patch_validate_calls()
-  compat.patch_tbl_flatten_calls()
+  -- Utiliser la nouvelle fonction unifiée qui applique tous les patches
+  compat.apply_compatibility_patches()
   
   -- Informer l'utilisateur (optionnel)
   vim.notify("Patches de compatibilité appliqués pour supprimer les avertissements", vim.log.levels.INFO, {
