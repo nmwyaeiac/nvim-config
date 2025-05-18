@@ -1,7 +1,9 @@
 -- lua/vim-config.lua
 -- Configuration de base de Vim/Neovim
 -- Contient les options fondamentales indépendantes des plugins
-
+-- Variables globales pour LSP
+vim.g.diagnostics_mode = 3 -- Mode diagnostic (0=désactivé, 1=barre d'état seulement, 2=texte virtuel désactivé, 3=tous activés)
+vim.g.lsp_round_borders_enabled = true -- Bordures arrondies pour les fenêtres LSP
 -- Leader key
 vim.g.mapleader = " "
 vim.g.maplocalleader = ","
