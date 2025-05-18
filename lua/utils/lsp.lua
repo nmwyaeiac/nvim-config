@@ -164,17 +164,14 @@ end
 M.setup = function(server)
   -- Ignorer certains serveurs qui sont gérés spécialement
   if server == "jdtls" then
-    -- JDTLS est géré par nvim-java
+    -- JDTLS est géré par nvim-java, on ignore donc sa configuration ici
     return
   end
 
   -- Obtenir les paramètres utilisateur.
   local opts = M.apply_user_lsp_settings(server)
 
-  -- Obtenir un gestionnaire de lspconfig.
-  local setup_handler = stored_handlers[server] or require("lspconfig")[server].setup(opts)
-
-  -- Appliquer nos paramètres utilisateur au gestionnaire lspconfig.
-  if setup_handler then setup_handler(server, opts) end
+  -- Configurer le serveur LSP
+  require("lspconfig")[server].setup(opts)
 end
 return M
