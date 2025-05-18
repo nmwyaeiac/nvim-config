@@ -1,3 +1,4 @@
+-- init.lua  
 -- Installation automatique de lazy.nvim s'il n'est pas présent
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -14,6 +15,17 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Configuration de base de Vim/Neovim
 require("vim-config")
+
+-- Désactiver explicitement les providers inutilisés pour éviter les avertissements
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_ruby_provider = 0
+-- Définir le chemin Python si disponible
+if vim.fn.executable("python3") == 1 then
+  vim.g.python3_host_prog = vim.fn.exepath("python3")
+else
+  -- Désactiver Python provider si indisponible
+  vim.g.loaded_python3_provider = 0
+end
 
 -- Chargement des raccourcis clavier généraux
 require("keymaps")
