@@ -5,7 +5,7 @@
 --  Vous pouvez spécifier vos propres paramètres lsp dans `M.apply_user_lsp_settings()`.
 
 local M = {}
-local utils = require "base.utils"
+local utils = require "utils"
 local stored_handlers = {}
 
 --- Appliquer les paramètres par défaut pour les diagnostics, le formatage et les capacités LSP.
@@ -72,7 +72,7 @@ M.apply_default_lsp_settings = function()
     -- tous les diagnostics activés
     default_diagnostics,
   }
-  vim.diagnostic.config(M.diagnostics[vim.g.diagnostics_mode])
+  vim.diagnostic.config(M.diagnostics[vim.g.diagnostics_mode or 3])
 
   -- Appliquer les paramètres de formatage
   M.formatting = { format_on_save = { enabled = true }, disabled = {} }
@@ -93,11 +93,8 @@ end
 --- @param client string Le client pour lequel les mappages seront chargés.
 --- @param bufnr string Le buffer pour lequel les mappages seront chargés.
 function M.apply_user_lsp_mappings(client, bufnr)
-  local lsp_mappings = require("base.4-mappings").lsp_mappings(client, bufnr)
-  if not vim.tbl_isempty(lsp_mappings.v) then
-    lsp_mappings.v["<leader>l"] = { desc = utils.get_icon("ActiveLSP", 1, true) .. "LSP" }
-  end
-  utils.set_mappings(lsp_mappings, { buffer = bufnr })
+  -- Utiliser les mappages LSP existants du client
+  require("keymaps.lsp").setup(client, bufnr)
 end
 
 --- Vous pouvez spécifier ici des paramètres personnalisés pour les serveurs LSP.
