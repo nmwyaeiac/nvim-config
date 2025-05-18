@@ -7,30 +7,28 @@ return {
     dependencies = {
       "williamboman/mason.nvim",
     },
-    opts = function()
+    config = function()
       local null_ls = require("null-ls")
       
-      -- Configure ici tes sources préférées
-      local sources = {
-        -- Formatage
-        null_ls.builtins.formatting.prettier,
-        null_ls.builtins.formatting.stylua,
-        null_ls.builtins.formatting.black,
-        
-        -- Diagnostics
-        null_ls.builtins.diagnostics.eslint,
-        
-        -- Code actions
-        null_ls.builtins.code_actions.eslint,
-      }
-      
-      return {
-        sources = sources,
+      -- Configuration avec les sources correctes
+      null_ls.setup({
+        sources = {
+          -- Formatage
+          null_ls.builtins.formatting.prettier,
+          null_ls.builtins.formatting.stylua,
+          null_ls.builtins.formatting.black,
+          
+          -- Diagnostics (eslint_d au lieu de eslint)
+          null_ls.builtins.diagnostics.eslint_d,
+          
+          -- Code actions (eslint_d au lieu de eslint)
+          null_ls.builtins.code_actions.eslint_d,
+        },
         on_attach = function(client, bufnr)
           -- Attacher les mappages LSP de l'utilisateur
           require("utils.lsp").apply_user_lsp_mappings(client, bufnr)
         end,
-      }
+      })
     end,
   },
   
