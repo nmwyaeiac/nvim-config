@@ -1,4 +1,4 @@
--- lua/utils/compat-improved.lua
+-- lua/utils/compat.lua (corrigé)
 -- Fonctions de compatibilité pour gérer les avertissements liés aux fonctions obsolètes
 local M = {}
 
@@ -11,6 +11,9 @@ function M.tbl_flatten(tbl)
   end
 end
 
+-- Référence à la fonction validate originale (pour éviter la récursion)
+local original_validate = vim.validate
+
 -- Wrapper pour vim.validate (obsolète depuis Neovim 1.0)
 -- Cette fonction est conçue pour être un remplacement direct
 -- qui évite les avertissements tout en gardant la même fonctionnalité
@@ -21,8 +24,9 @@ function M.validate(...)
     vim._with_meta.deprecated_fn = function() end
   end
   
-  -- Appeler la fonction originale
-  local result = vim.validate(...)
+  -- ATTENTION: Ici on appelle la référence originale, PAS vim.validate
+  -- car vim.validate pourrait déjà référencer M.validate (récursion infinie)
+  local result = original_validate(...)
   
   -- Restaurer le comportement d'avertissement
   if old_deprecated_fn then
@@ -35,9 +39,6 @@ end
 -- Fonction pour patcher les plugins qui utilisent vim.validate
 -- Cette fonction est utile pour les plugins que nous ne pouvons pas modifier directement
 function M.patch_validate_calls()
-  -- Sauvegarder la fonction originale
-  local original_validate = vim.validate
-  
   -- Remplacer par notre version sans avertissement
   vim.validate = M.validate
   
