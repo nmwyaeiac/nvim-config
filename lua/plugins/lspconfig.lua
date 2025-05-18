@@ -1,202 +1,211 @@
+-- Configuration des plugins LSP et outils de développement
 return {
+  -- nvim-lspconfig : Configurations des serveurs LSP
   {
     "neovim/nvim-lspconfig",
+    event = "BufReadPre",
     dependencies = {
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      "hrsh7th/cmp-nvim-lsp",
-      "folke/neodev.nvim", -- Aide pour la configuration Lua
+      "folke/neodev.nvim", -- Aide pour la configuration de Lua/Neovim
     },
-    config = function()
-      -- Configuration pour la documentation Lua/Neovim
-      require("neodev").setup()
+  },
 
-      -- Import des modules nécessaires
-      local lspconfig = require("lspconfig")
-      local lsp_keymaps = require("keymaps.lsp")
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      -- Configuration des icônes pour les diagnostics
-      local signs = {
-        { name = "DiagnosticSignError", text = "✘" },
-        { name = "DiagnosticSignWarn", text = "▲" },
-        { name = "DiagnosticSignHint", text = "⚑" },
-        { name = "DiagnosticSignInfo", text = "ℹ" },
-      }
-
-      for _, sign in ipairs(signs) do
-        vim.fn.sign_define(sign.name, { texthl = sign.name, text = sign.text, numhl = "" })
-      end
-
-      -- Configuration globale des diagnostics
-      vim.diagnostic.config({
-        virtual_text = true,
-        signs = { active = signs },
-        update_in_insert = false,
-        underline = true,
-        severity_sort = true,
-        float = {
-          focusable = true,
-          style = "minimal",
-          border = "rounded",
-          source = "always",
-          header = "",
-          prefix = "",
+  -- Mason : Gestionnaire de paquets pour les outils LSP, DAP, linters et formatters
+  {
+    "williamboman/mason.nvim",
+    cmd = {
+      "Mason",
+      "MasonInstall",
+      "MasonUninstall",
+      "MasonUninstallAll",
+      "MasonLog",
+      "MasonUpdate",
+      "MasonUpdateAll",
+    },
+    opts = {
+      ui = {
+        icons = {
+          package_installed = "✓",
+          package_pending = "➜",
+          package_uninstalled = "✗",
         },
-      })
-
-      -- Configuration fenêtres flottantes
-      vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
         border = "rounded",
-      })
+      },
+      ensure_installed = true,
+      log_level = vim.log.levels.INFO,
+    },
+    config = function(_, opts)
+      require("mason").setup(opts)
+    end,
+  },
 
-      vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, {
-        border = "rounded",
-      })
-
-      -- Fonction d'attachement LSP commune avec keymaps
-      local function on_attach(client, bufnr)
-        -- Configurer les raccourcis clavier
-        lsp_keymaps.setup(client, bufnr)
-
-        -- Désactiver le formatage pour certains serveurs (si on utilise none-ls à la place)
-        if client.name == "typescript" or client.name == "clangd" or
-           client.name == "lua_ls" or client.name == "rust_analyzer" then
-          client.server_capabilities.documentFormattingProvider = false
-          client.server_capabilities.documentRangeFormattingProvider = false
-        end
-
-        -- Ajouter un highlight pour les références sous le curseur
-        if client.server_capabilities.documentHighlightProvider then
-          vim.api.nvim_create_augroup("lsp_document_highlight", { clear = true })
-          vim.api.nvim_create_autocmd("CursorHold", {
-            group = "lsp_document_highlight",
-            buffer = bufnr,
-            callback = vim.lsp.buf.document_highlight,
-          })
-          vim.api.nvim_create_autocmd("CursorMoved", {
-            group = "lsp_document_highlight",
-            buffer = bufnr,
-            callback = vim.lsp.buf.clear_references,
-          })
-        end
-      end
-
-      -- TypeScript
-      lspconfig.typescript.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-        settings = {
-          typescript = {
-            inlayHints = {
-              includeInlayParameterNameHints = "all",
-              includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-              includeInlayFunctionParameterTypeHints = true,
-              includeInlayVariableTypeHints = true,
-              includeInlayPropertyDeclarationTypeHints = true,
-              includeInlayFunctionLikeReturnTypeHints = true,
-              includeInlayEnumMemberValueHints = true,
-            },
-            format = {
-              enable = false, -- Désactiver le formatage intégré
-            },
-          },
-          javascript = {
-            inlayHints = {
-              includeInlayParameterNameHints = "all",
-              includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-              includeInlayFunctionParameterTypeHints = true,
-              includeInlayVariableTypeHints = true,
-              includeInlayPropertyDeclarationTypeHints = true,
-              includeInlayFunctionLikeReturnTypeHints = true,
-              includeInlayEnumMemberValueHints = true,
-            },
-            format = {
-              enable = false, -- Désactiver le formatage intégré
-            },
-          },
-        },
-      })
-
-      -- Lua
-      lspconfig.lua_ls.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { "vim" }, -- Reconnaître vim comme global pour les configs Neovim
-            },
-            workspace = {
-              library = {
-                [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-                [vim.fn.stdpath("config") .. "/lua"] = true,
-              },
-              checkThirdParty = false,
-            },
-            telemetry = {
-              enable = false,
-            },
-            completion = {
-              callSnippet = "Replace",
-            },
-            format = {
-              enable = false, -- Désactiver le formatage intégré
-            }
-          },
-        },
-      })
-
-      -- Rust
-      lspconfig.rust_analyzer.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-        settings = {
-          ["rust-analyzer"] = {
-            checkOnSave = {
-              command = "clippy",
-            },
-            cargo = {
-              allFeatures = true,
-            },
-            inlayHints = {
-              typeHints = {
-                enable = true,
-              },
-              parameterHints = {
-                enable = true,
-              },
-            },
-            -- Désactiver le formatage intégré
-            rustfmt = {
-              rangeFormatting = {
-                enable = false,
-              },
-            },
-          },
-        },
-      })
-
-      -- Autres serveurs LSP déjà dans votre configuration...
-      -- C/C++, Python, etc.
-
-      -- Auto-configuration pour les autres serveurs LSP installés avec Mason
+  -- mason-lspconfig : Intégration entre Mason et LSP config
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = {"williamboman/mason.nvim", "neovim/nvim-lspconfig"},
+    event = "BufReadPre",
+    opts = {
+      ensure_installed = {
+        -- Serveurs LSP à installer automatiquement
+        "clangd",        -- C/C++
+        "pyright",       -- Python
+        "tsserver",      -- TypeScript/JavaScript
+        "cssls",         -- CSS
+        "html",          -- HTML
+        "eslint",        -- ESLint
+        "rust_analyzer", -- Rust
+        "lua_ls",        -- Lua
+        "jsonls",        -- JSON
+        "yamlls",        -- YAML
+      },
+      automatic_installation = true,
+    },
+    config = function(_, opts)
+      local utils_lsp = require("utils.lsp")
+      require("mason-lspconfig").setup(opts)
+      
+      -- Appliquer les réglages LSP par défaut
+      utils_lsp.apply_default_lsp_settings()
+      
+      -- Configurer les gestionnaires pour chaque serveur LSP
       require("mason-lspconfig").setup_handlers({
         function(server_name)
-          -- Configuration par défaut pour les serveurs LSP non explicitement définis
-          if not (
-            server_name == "typescript" or
-            server_name == "lua_ls" or
-            server_name == "rust_analyzer"
-            -- Ajoutez ici les autres serveurs que vous avez déjà définis explicitement
-          ) then
-            lspconfig[server_name].setup({
-              capabilities = capabilities,
-              on_attach = on_attach,
-            })
-          end
+          utils_lsp.setup(server_name)
         end,
       })
     end,
+  },
+
+  -- none-ls : Pour le formatage de code et les linters
+  {
+    "nvimtools/none-ls.nvim",
+    event = "BufReadPre",
+    dependencies = {"nvim-lua/plenary.nvim"},
+    opts = function()
+      local utils_lsp = require("utils.lsp")
+      return {
+        on_attach = utils_lsp.apply_user_lsp_mappings
+      }
+    end,
+  },
+
+  -- SchemaStore : Schémas JSON supplémentaires
+  {
+    "b0o/SchemaStore.nvim",
+    lazy = true,
+  },
+
+  -- Autocomplétion
+  {
+    "hrsh7th/nvim-cmp",
+    event = "InsertEnter",
+    dependencies = {
+      "saadparwaiz1/cmp_luasnip",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+      "hrsh7th/cmp-nvim-lsp",
+      "onsails/lspkind.nvim",
+    },
+    config = function()
+      local cmp = require("cmp")
+      local luasnip = require("luasnip")
+      local lspkind = require("lspkind")
+
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
+        window = {
+          completion = cmp.config.window.bordered({
+            winhighlight = "Normal:CmpNormal,FloatBorder:CmpBorder,CursorLine:PmenuSel,Search:None",
+          }),
+          documentation = cmp.config.window.bordered({
+            winhighlight = "Normal:CmpNormal,FloatBorder:CmpBorder",
+          }),
+        },
+        formatting = {
+          format = lspkind.cmp_format({
+            mode = "symbol_text",
+            maxwidth = 50,
+            ellipsis_char = "...",
+          }),
+        },
+        mapping = {
+          ["<C-p>"] = cmp.mapping.select_prev_item(),
+          ["<C-n>"] = cmp.mapping.select_next_item(),
+          ["<C-d>"] = cmp.mapping.scroll_docs(-4),
+          ["<C-f>"] = cmp.mapping.scroll_docs(4),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.close(),
+          ["<CR>"] = cmp.mapping.confirm({
+            behavior = cmp.ConfirmBehavior.Replace,
+            select = false,
+          }),
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+          ["<S-Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+        },
+        sources = cmp.config.sources({
+          { name = "nvim_lsp", priority = 1000 },
+          { name = "luasnip", priority = 750 },
+          { name = "buffer", priority = 500 },
+          { name = "path", priority = 250 },
+        }),
+      })
+    end,
+  },
+
+  -- LuaSnip : Moteur de snippets
+  {
+    "L3MON4D3/LuaSnip",
+    dependencies = {
+      "rafamadriz/friendly-snippets",
+    },
+    config = function()
+      require("luasnip.loaders.from_vscode").lazy_load()
+    end,
+  },
+
+  -- lsp_signature : Aide pour les signatures de fonctions
+  {
+    "ray-x/lsp_signature.nvim",
+    event = "BufReadPre",
+    opts = {
+      floating_window = true,
+      hint_enable = false,
+      handler_opts = {
+        border = "rounded"
+      },
+    },
+    config = function(_, opts)
+      require("lsp_signature").setup(opts)
+    end,
+  },
+
+  -- Indication visuelle pour les actions de code
+  {
+    "kosayoda/nvim-lightbulb",
+    event = "BufReadPre",
+    opts = {
+      sign = { enabled = true, priority = 10 },
+      virtual_text = { enabled = false },
+      autocmd = { enabled = true },
+    },
   },
 }
