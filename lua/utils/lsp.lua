@@ -1,6 +1,8 @@
+-- lua/utils/lsp.lua
 -- Utilitaires pour la configuration LSP
 local M = {}
 local utils = require("utils")
+local compat = require("utils.compat") -- Ajout de la dépendance compat
 local stored_handlers = {}
 
 -- Appliquer les paramètres par défaut pour les diagnostics, le formatage et les capacités LSP
@@ -140,6 +142,19 @@ function M.apply_user_lsp_settings(server_name)
   M.capabilities.textDocument.foldingRange = { dynamicRegistration = false, lineFoldingOnly = true }
   
   M.flags = {}
+  
+  -- Utiliser validate de notre module compat au lieu de vim.validate directement
+  -- La fonction originale reste inchangée, mais c'est la fonction de compat qui sera appelée
+  local function safe_validate(...)
+    return compat.validate(...)
+  end
+  
+  -- Patch pour les fonctions qui peuvent utiliser vim.validate
+  if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
+    local original_validate = vim.validate
+    vim.validate = safe_validate
+  end
+  
   local opts = vim.tbl_deep_extend("force", server, { capabilities = M.capabilities, flags = M.flags })
 
   -- Configurations spécifiques pour certains serveurs
@@ -178,6 +193,11 @@ function M.apply_user_lsp_settings(server_name)
         },
       },
     }
+  end
+  
+  -- Restaurer vim.validate si modifié
+  if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
+    vim.validate = original_validate
   end
 
   -- Appliquer les paramètres
