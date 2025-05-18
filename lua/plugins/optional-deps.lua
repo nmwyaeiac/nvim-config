@@ -1,4 +1,4 @@
--- lua/plugins/optional-deps.lua
+-- lua/plugins/optional-deps.lua (corrigé)
 -- Ce fichier gère l'installation des dépendances optionnelles
 
 return {
@@ -30,7 +30,8 @@ return {
     },
     config = function(_, opts)
       -- Appliquer le patch de compatibilité avant le chargement de null-ls
-      local compat = require("utils.compat-improved")
+      -- Correction du nom du module pour correspondre au fichier existant
+      local compat = require("utils.compat")
       local restore_validate = compat.patch_validate_calls()
       
       -- Configurer null-ls normalement
@@ -49,7 +50,8 @@ return {
     },
     config = function()
       -- Appliquer le patch de compatibilité pour vim.validate
-      local compat = require("utils.compat-improved")
+      -- Correction du nom du module pour correspondre au fichier existant
+      local compat = require("utils.compat")
       local restore_validate = compat.patch_validate_calls()
       
       -- Configurer alpha normalement
@@ -86,7 +88,8 @@ return {
     "jay-babu/mason-nvim-dap.nvim",
     config = function(_, opts)
       -- Appliquer le patch de compatibilité avant la configuration
-      local compat = require("utils.compat-improved")
+      -- Correction du nom du module pour correspondre au fichier existant
+      local compat = require("utils.compat")
       local restore_validate = compat.patch_validate_calls()
       
       -- Configurer mason-nvim-dap normalement
