@@ -1,3 +1,4 @@
+-- lua/plugins/which-key.lua
 return {
   "folke/which-key.nvim",
   event = "VeryLazy",
@@ -8,8 +9,11 @@ return {
         suggestions = 20,
       },
     },
-    window = {
+    -- Remplacer "window" par "win" pour corriger l'avertissement d'option obsolète
+    win = {
       border = "rounded", -- bordures jolies
+      padding = { 2, 2, 2, 2 }, -- espacement interne
+      winblend = 0, -- transparence (0 = opaque, 100 = transparent)
     },
     layout = {
       align = "center",
@@ -19,24 +23,24 @@ return {
     local wk = require("which-key")
     wk.setup(opts)
 
+    -- Utiliser le nouveau format spec pour les mappings (liste au lieu de tables imbriquées)
     wk.register({
-      -- Tes propres mappings à afficher dans le menu
-      f = {
-        name = "Fichier",
-        f = { "<cmd>Telescope find_files<cr>", "Rechercher un fichier" },
-        r = { "<cmd>Telescope oldfiles<cr>", "Récents" },
-        s = { "<cmd>w<cr>", "Sauvegarder" },
-      },
-      b = {
-        name = "Buffers",
-        b = { "<cmd>Telescope buffers<cr>", "Liste des buffers" },
-        d = { "<cmd>bd<cr>", "Fermer le buffer" },
-      },
-      g = {
-        name = "Git",
-        s = { "<cmd>Telescope git_status<cr>", "Status" },
-        c = { "<cmd>Telescope git_commits<cr>", "Commits" },
-      },
-    }, { prefix = "<leader>" })
+      { "<leader>f", group = "Fichier" },
+      { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Rechercher un fichier" },
+      { "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Récents" },
+      { "<leader>fs", "<cmd>w<cr>", desc = "Sauvegarder" },
+      
+      { "<leader>b", group = "Buffers" },
+      { "<leader>bb", "<cmd>Telescope buffers<cr>", desc = "Liste des buffers" },
+      { "<leader>bd", "<cmd>bd<cr>", desc = "Fermer le buffer" },
+      
+      { "<leader>g", group = "Git" },
+      { "<leader>gs", "<cmd>Telescope git_status<cr>", desc = "Status" },
+      { "<leader>gc", "<cmd>Telescope git_commits<cr>", desc = "Commits" },
+      
+      -- Ajouter mappings pour résoudre le conflit de chevauchement <Space>w et <Space>wq
+      { "<leader>wq", "<cmd>wq<cr>", desc = "Sauvegarder et quitter" },
+      { "<leader>qq", "<cmd>q!<cr>", desc = "Quitter sans sauvegarder" },
+    })
   end,
 }
