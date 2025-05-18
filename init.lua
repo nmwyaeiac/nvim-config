@@ -75,7 +75,12 @@ vim.api.nvim_create_autocmd("User", {
     
     -- Vérifier les dépendances manquantes (version simplifiée sans patches)
     -- init_patch.check_missing_dependencies()
-
+-- Créer un événement personnalisé pour déclencher le chargement des plugins basés sur l'événement "BufReadPre"
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+  callback = function()
+    vim.api.nvim_exec_autocmds("User", { pattern = "BaseFile", modeline = false })
+  end,
+})
     -- Message de démarrage
     print("Configuration NeoVim chargée avec succès!")
   end,
