@@ -30,15 +30,14 @@ return {
     },
     config = function(_, opts)
       -- Appliquer le patch de compatibilité avant le chargement de null-ls
-      -- Correction du nom du module pour correspondre au fichier existant
       local compat = require("utils.compat")
-      local restore_validate = compat.patch_validate_calls()
+      local restore = compat.patch_validate_calls()
       
       -- Configurer null-ls normalement
       require("null-ls").setup(opts or {})
       
       -- Restaurer la fonction originale (optionnel)
-      -- restore_validate()
+      -- restore()
     end,
   },
   
@@ -50,9 +49,8 @@ return {
     },
     config = function()
       -- Appliquer le patch de compatibilité pour vim.validate
-      -- Correction du nom du module pour correspondre au fichier existant
       local compat = require("utils.compat")
-      local restore_validate = compat.patch_validate_calls()
+      local restore = compat.patch_validate_calls()
       
       -- Configurer alpha normalement
       local alpha = require("alpha")
@@ -79,7 +77,7 @@ return {
       alpha.setup(dashboard.opts)
       
       -- Restaurer la fonction originale (optionnel)
-      -- restore_validate()
+      -- restore()
     end,
   },
   
@@ -88,9 +86,8 @@ return {
     "jay-babu/mason-nvim-dap.nvim",
     config = function(_, opts)
       -- Appliquer le patch de compatibilité avant la configuration
-      -- Correction du nom du module pour correspondre au fichier existant
       local compat = require("utils.compat")
-      local restore_validate = compat.patch_validate_calls()
+      local restore = compat.patch_validate_calls()
       
       -- Configurer mason-nvim-dap normalement
       require("mason-nvim-dap").setup(opts or {
@@ -106,7 +103,7 @@ return {
       })
       
       -- Restaurer la fonction originale (optionnel)
-      -- restore_validate()
+      -- restore()
     end,
   },
 }
