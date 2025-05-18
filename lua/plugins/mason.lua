@@ -27,17 +27,17 @@ return {
     },
     event = "BufReadPre",
     opts = {
-      -- Serveurs LSP à installer automatiquement
+      -- Assurons-nous que tous les noms sont corrects
       ensure_installed = {
         "clangd",          -- C/C++
         "pyright",         -- Python
         "html",            -- HTML
         "cssls",           -- CSS
-        "tsserver",        -- TypeScript/JavaScript
-        "eslint",          -- JavaScript/TypeScript linting
+        "jdtls",           -- Java (remplace "java-language-server")
         "lua_ls",          -- Lua
         "jsonls",          -- JSON
         "yamlls",          -- YAML
+        "tsserver",        -- TypeScript/JavaScript - vérifié avec les noms de mason-lspconfig
       },
       automatic_installation = true,
     },
@@ -47,7 +47,10 @@ return {
       -- Configurer les serveurs avec notre utilitaire LSP
       require("mason-lspconfig").setup_handlers({
         function(server)
-          require("utils.lsp").setup(server)
+          -- Ne pas configurer jdtls via lspconfig, il est géré différemment
+          if server ~= "jdtls" then
+            require("utils.lsp").setup(server)
+          end
         end
       })
     end,
