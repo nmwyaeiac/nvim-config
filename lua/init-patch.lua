@@ -1,4 +1,4 @@
--- lua/init-patch.lua
+-- lua/init-patch.lua (corrigé)
 -- Ce fichier contient une fonction à appeler au démarrage pour corriger
 -- les avertissements liés aux fonctions obsolètes
 
@@ -6,7 +6,8 @@ local M = {}
 
 function M.apply_compatibility_patches()
   -- Charger notre module de compatibilité amélioré
-  local compat = require("utils.compat-improved")
+  -- Correction du nom du module pour correspondre au fichier existant
+  local compat = require("utils.compat")
   
   -- Appliquer les patches pour les fonctions obsolètes
   compat.patch_validate_calls()
