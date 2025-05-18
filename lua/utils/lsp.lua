@@ -1,30 +1,49 @@
--- lua/utils/lsp.lua
--- Utilitaires pour la configuration LSP
+--- ### Utilitaires LSP.
+
+--  DESCRIPTION:
+--  Fonctions utilisées pour configurer le plugin `mason-lspconfig.nvim`.
+--  Vous pouvez spécifier vos propres paramètres lsp dans `M.apply_user_lsp_settings()`.
+
 local M = {}
-local utils = require("utils")
-local compat = require("utils.compat") -- Ajout de la dépendance compat
+local utils = require "base.utils"
 local stored_handlers = {}
 
--- Appliquer les paramètres par défaut pour les diagnostics, le formatage et les capacités LSP
-function M.apply_default_lsp_settings()
-  -- Icônes pour les diagnostics
+--- Appliquer les paramètres par défaut pour les diagnostics, le formatage et les capacités LSP.
+--- Doit être exécuté une seule fois, normalement sur mason-lspconfig.
+--- @return nil
+M.apply_default_lsp_settings = function()
+  -- Icônes
+  local get_icon = utils.get_icon
   local signs = {
-    { name = "DiagnosticSignError", text = "✘", texthl = "DiagnosticSignError" },
-    { name = "DiagnosticSignWarn", text = "▲", texthl = "DiagnosticSignWarn" },
-    { name = "DiagnosticSignHint", text = "⚑", texthl = "DiagnosticSignHint" },
-    { name = "DiagnosticSignInfo", text = "ℹ", texthl = "DiagnosticSignInfo" },
+    { name = "DiagnosticSignError",    text = get_icon("DiagnosticError"),        texthl = "DiagnosticSignError" },
+    { name = "DiagnosticSignWarn",     text = get_icon("DiagnosticWarn"),         texthl = "DiagnosticSignWarn" },
+    { name = "DiagnosticSignHint",     text = get_icon("DiagnosticHint"),         texthl = "DiagnosticSignHint" },
+    { name = "DiagnosticSignInfo",     text = get_icon("DiagnosticInfo"),         texthl = "DiagnosticSignInfo" },
+    { name = "DapStopped",             text = get_icon("DapStopped"),             texthl = "DiagnosticWarn" },
+    { name = "DapBreakpoint",          text = get_icon("DapBreakpoint"),          texthl = "DiagnosticInfo" },
+    { name = "DapBreakpointRejected",  text = get_icon("DapBreakpointRejected"),  texthl = "DiagnosticError" },
+    { name = "DapBreakpointCondition", text = get_icon("DapBreakpointCondition"), texthl = "DiagnosticInfo" },
+    { name = "DapLogPoint",            text = get_icon("DapLogPoint"),            texthl = "DiagnosticInfo" }
   }
   for _, sign in ipairs(signs) do
     vim.fn.sign_define(sign.name, sign)
   end
 
-  -- Configuration hover LSP avec bordures arrondies
-  M.lsp_hover_config = { border = "rounded", silent = true }
+  -- Appliquer les bordures arrondies LSP par défaut
+  M.lsp_hover_config = vim.g.lsp_round_borders_enabled and { border = "rounded", silent = true } or {}
 
-  -- Configuration par défaut des diagnostics
+  -- Définir les diagnostics par défaut
   local default_diagnostics = {
     virtual_text = true,
-    signs = { active = signs },
+    signs = {
+      text = {
+        [vim.diagnostic.severity.ERROR] = utils.get_icon("DiagnosticError"),
+        [vim.diagnostic.severity.HINT] = utils.get_icon("DiagnosticHint"),
+        [vim.diagnostic.severity.WARN] = utils.get_icon("DiagnosticWarn"),
+        [vim.diagnostic.severity.INFO] = utils.get_icon("DiagnosticInfo"),
+      },
+      active = signs,
+    },
     update_in_insert = true,
     underline = true,
     severity_sort = true,
@@ -38,20 +57,24 @@ function M.apply_default_lsp_settings()
     },
   }
 
-  -- Modes de diagnostic (0 à 3, du moins au plus verbeux)
+  -- Appliquer les diagnostics par défaut
   M.diagnostics = {
+    -- diagnostics désactivés
     [0] = vim.tbl_deep_extend(
       "force",
       default_diagnostics,
       { underline = false, virtual_text = false, signs = false, update_in_insert = false }
     ),
+    -- statut seulement
     vim.tbl_deep_extend("force", default_diagnostics, { virtual_text = false, signs = false }),
+    -- texte virtuel désactivé, signes activés
     vim.tbl_deep_extend("force", default_diagnostics, { virtual_text = false }),
+    -- tous les diagnostics activés
     default_diagnostics,
   }
-  vim.diagnostic.config(M.diagnostics[3]) -- Mode par défaut
+  vim.diagnostic.config(M.diagnostics[vim.g.diagnostics_mode])
 
-  -- Configuration du formatage
+  -- Appliquer les paramètres de formatage
   M.formatting = { format_on_save = { enabled = true }, disabled = {} }
   if type(M.formatting.format_on_save) == "boolean" then
     M.formatting.format_on_save = { enabled = M.formatting.format_on_save }
@@ -66,68 +89,24 @@ function M.apply_default_lsp_settings()
   end
 end
 
--- Appliquer les raccourcis clavier LSP
+--- Cette fonction a pour seul but de transmettre les mappages de touches LSP au LSP.
+--- @param client string Le client pour lequel les mappages seront chargés.
+--- @param bufnr string Le buffer pour lequel les mappages seront chargés.
 function M.apply_user_lsp_mappings(client, bufnr)
-  local function map(mode, lhs, rhs, desc)
-    vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+  local lsp_mappings = require("base.4-mappings").lsp_mappings(client, bufnr)
+  if not vim.tbl_isempty(lsp_mappings.v) then
+    lsp_mappings.v["<leader>l"] = { desc = utils.get_icon("ActiveLSP", 1, true) .. "LSP" }
   end
-
-  -- Navigation de code
-  map("n", "gd", vim.lsp.buf.definition, "Aller à la définition")
-  map("n", "gr", vim.lsp.buf.references, "Trouver les références")
-  map("n", "gi", vim.lsp.buf.implementation, "Aller à l'implémentation")
-  map("n", "gD", vim.lsp.buf.declaration, "Aller à la déclaration")
-  map("n", "gt", vim.lsp.buf.type_definition, "Aller à la définition du type")
-
-  -- Affichage d'informations
-  map("n", "K", vim.lsp.buf.hover, "Afficher la documentation")
-  map("n", "<C-k>", vim.lsp.buf.signature_help, "Afficher l'aide de signature")
-
-  -- Refactoring et actions de code
-  map("n", "<leader>rn", vim.lsp.buf.rename, "Renommer")
-  map("n", "<leader>ca", vim.lsp.buf.code_action, "Actions de code")
-  map("n", "<leader>gf", function() vim.lsp.buf.format(M.format_opts) end, "Formater le code")
-
-  -- Diagnostic
-  map("n", "[d", vim.diagnostic.goto_prev, "Diagnostic précédent")
-  map("n", "]d", vim.diagnostic.goto_next, "Diagnostic suivant")
-  map("n", "<leader>dl", vim.diagnostic.open_float, "Afficher le diagnostic sous le curseur")
-  map("n", "<leader>dq", vim.diagnostic.setloclist, "Liste des diagnostics")
-
-  -- Mise en surbrillance des références
-  if client.server_capabilities.documentHighlightProvider then
-    vim.api.nvim_create_augroup("lsp_document_highlight", { clear = true })
-    vim.api.nvim_create_autocmd("CursorHold", {
-      group = "lsp_document_highlight",
-      buffer = bufnr,
-      callback = vim.lsp.buf.document_highlight,
-    })
-    vim.api.nvim_create_autocmd("CursorMoved", {
-      group = "lsp_document_highlight",
-      buffer = bufnr,
-      callback = vim.lsp.buf.clear_references,
-    })
-  end
-
-  -- Format on save
-  if client.server_capabilities.documentFormattingProvider then
-    vim.api.nvim_create_autocmd("BufWritePre", {
-      group = vim.api.nvim_create_augroup("LspFormat." .. bufnr, {}),
-      buffer = bufnr,
-      callback = function()
-        if M.formatting.format_on_save.enabled then
-          vim.lsp.buf.format(vim.tbl_deep_extend("force", M.format_opts, { bufnr = bufnr }))
-        end
-      end,
-    })
-  end
+  utils.set_mappings(lsp_mappings, { buffer = bufnr })
 end
 
--- Appliquer les paramètres personnalisés pour les serveurs LSP
+--- Vous pouvez spécifier ici des paramètres personnalisés pour les serveurs LSP.
+--- @param server_name string Le nom du serveur
+--- @return table # La table d'options LSP utilisée lors de la configuration du serveur de langage
 function M.apply_user_lsp_settings(server_name)
   local server = require("lspconfig")[server_name]
 
-  -- Définir les capacités du client
+  -- Définir les capacités du serveur utilisateur.
   M.capabilities = vim.lsp.protocol.make_client_capabilities()
   M.capabilities.textDocument.completion.completionItem.documentationFormat = { "markdown", "plaintext" }
   M.capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -140,78 +119,42 @@ function M.apply_user_lsp_settings(server_name)
   M.capabilities.textDocument.completion.completionItem.resolveSupport =
   { properties = { "documentation", "detail", "additionalTextEdits" } }
   M.capabilities.textDocument.foldingRange = { dynamicRegistration = false, lineFoldingOnly = true }
-  
   M.flags = {}
-  
-  -- Utiliser safe_validate du module compat au lieu de vim.validate directement
-  -- C'est crucial pour éviter les erreurs de stack overflow
-  local safe_validate = compat.safe_validate
-  
-  -- Patch pour les fonctions qui peuvent utiliser vim.validate
-  if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
-    -- Appliquer le patch temporairement pour ce bloc de code
-    local restore = compat.patch_validate_calls()
-  end
-  
   local opts = vim.tbl_deep_extend("force", server, { capabilities = M.capabilities, flags = M.flags })
 
-  -- Configurations spécifiques pour certains serveurs
-  if server_name == "jsonls" then
+  -- Définir les règles du serveur utilisateur.
+  if server_name == "jsonls" then -- Ajouter les schémas schemastore
     local is_schemastore_loaded, schemastore = pcall(require, "schemastore")
     if is_schemastore_loaded then
       opts.settings = { json = { schemas = schemastore.json.schemas(), validate = { enable = true } } }
     end
   end
-  
-  if server_name == "yamlls" then
+  if server_name == "yamlls" then -- Ajouter les schémas schemastore
     local is_schemastore_loaded, schemastore = pcall(require, "schemastore")
-    if is_schemastore_loaded then
-      opts.settings = { yaml = { schemas = schemastore.yaml.schemas() } }
-    end
+    if is_schemastore_loaded then opts.settings = { yaml = { schemas = schemastore.yaml.schemas() } } end
   end
 
-  if server_name == "lua_ls" then
-    opts.settings = {
-      Lua = {
-        diagnostics = {
-          globals = { "vim" }, -- Reconnaître vim comme global pour Neovim
-        },
-        workspace = {
-          library = {
-            [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-            [vim.fn.stdpath("config") .. "/lua"] = true,
-          },
-          checkThirdParty = false,
-        },
-        telemetry = {
-          enable = false,
-        },
-        completion = {
-          callSnippet = "Replace",
-        },
-      },
-    }
-  end
-  
-  -- Restaurer vim.validate si nécessaire
-  if server_name == "lua_ls" or server_name == "yamlls" or server_name == "jsonls" then
-    -- La restauration est gérée automatiquement par le retour de patch_validate_calls
-  end
-
-  -- Appliquer les paramètres
+  -- Les appliquer
   local old_on_attach = server.on_attach
   opts.on_attach = function(client, bufnr)
     if type(old_on_attach) == "function" then old_on_attach(client, bufnr) end
     M.apply_user_lsp_mappings(client, bufnr)
   end
-  
   return opts
 end
 
--- Configurer le serveur LSP
-function M.setup(server)
+--- Cette fonction transmet les `paramètres lsp de l'utilisateur` à lspconfig,
+--- qui est responsable de tout configurer pour nous.
+--- @param server string Un nom de serveur lsp.
+--- @return nil
+M.setup = function(server)
+  -- Obtenir les paramètres utilisateur.
   local opts = M.apply_user_lsp_settings(server)
+
+  -- Obtenir un gestionnaire de lspconfig.
   local setup_handler = stored_handlers[server] or require("lspconfig")[server].setup(opts)
+
+  -- Appliquer nos paramètres utilisateur au gestionnaire lspconfig.
   if setup_handler then setup_handler(server, opts) end
 end
 
